@@ -16,7 +16,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
-export default function Home() {
+export default function Home() : any{
   return (
     <>
       {/* Main content */}
