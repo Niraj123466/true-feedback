@@ -79,7 +79,7 @@ export async function GET(request: Request) {
     const foundUser = await UserModel.findById(user._id);
 
     if (!foundUser) {
-      // User not found
+      // 
       return Response.json(
         { success: false, message: 'User not found' },
         { status: 404 }
