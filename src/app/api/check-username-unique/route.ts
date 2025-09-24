@@ -1,30 +1,35 @@
+// app/api/check-username-unique/route.ts
+import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import UserModel from '@/model/User';
 import { z } from 'zod';
 import { usernameValidation } from '@/schemas/signUpSchema';
+
+// Mark the route as dynamic to suppress DYNAMIC_SERVER_USAGE warning
+export const dynamic = 'force-dynamic';
 
 const UsernameQuerySchema = z.object({
   username: usernameValidation,
 });
 
 export async function GET(request: Request) {
-  await dbConnect();
-
   try {
+    // Connect to the database
+    await dbConnect();
+
+    // Parse query parameters
     const { searchParams } = new URL(request.url);
-    const queryParams = {
-      username: searchParams.get('username'),
-    };
+    const username = searchParams.get('username');
 
-    const result = UsernameQuerySchema.safeParse(queryParams);
-
-    if (!result.success) {
-      const usernameErrors = result.error.format().username?._errors || [];
-      return Response.json(
+    // Validate username
+    const validation = UsernameQuerySchema.safeParse({ username });
+    if (!validation.success) {
+      const usernameErrors = validation.error.format().username?._errors || [];
+      return NextResponse.json(
         {
           success: false,
           message:
-            usernameErrors?.length > 0
+            usernameErrors.length > 0
               ? usernameErrors.join(', ')
               : 'Invalid query parameters',
         },
@@ -32,15 +37,14 @@ export async function GET(request: Request) {
       );
     }
 
-    const { username } = result.data;
-
-    const existingVerifiedUser = await UserModel.findOne({
-      username,
+    // Check if username already exists
+    const existingUser = await UserModel.findOne({
+      username: validation.data.username,
       isVerified: true,
     });
 
-    if (existingVerifiedUser) {
-      return Response.json(
+    if (existingUser) {
+      return NextResponse.json(
         {
           success: false,
           message: 'Username is already taken',
@@ -49,7 +53,8 @@ export async function GET(request: Request) {
       );
     }
 
-    return Response.json(
+    // Username is available
+    return NextResponse.json(
       {
         success: true,
         message: 'Username is unique',
@@ -58,7 +63,7 @@ export async function GET(request: Request) {
     );
   } catch (error) {
     console.error('Error checking username:', error);
-    return Response.json(
+    return NextResponse.json(
       {
         success: false,
         message: 'Error checking username',
